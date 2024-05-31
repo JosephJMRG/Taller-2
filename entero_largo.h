@@ -168,14 +168,65 @@ void muestraEnteroLargo(EnteroLargo *numero){
 
 
 void escribeEnteroLargo(char *nombreArchivo, EnteroLargo *numero){
-    //...
+    // Verificar que el número no sea nulo
+    if (numero == NULL) {
+        printf("El número proporcionado es nulo.\n");
+        return;
+    }
+
+    // Abrir el archivo en modo de escritura
+    FILE *archivo = fopen(nombreArchivo, "w");
+    if (archivo == NULL) {
+        printf("Error al abrir el archivo %s para escribir.\n", nombreArchivo);
+        return;
+    }
+
+    // Escribir el signo en el archivo
+    fprintf(archivo, "%c\n", numero->signo);
+
+    // Escribir la cantidad de dígitos en el archivo
+    fprintf(archivo, "%d\n", numero->cantidadDigitos);
+
+    // Escribir los dígitos en el archivo recorriendo la lista enlazada
+    struct Nodo *actual = numero->siguiente;
+    while (actual != NULL) {
+        fprintf(archivo, "%d", actual->digito);
+        actual = actual->siguiente;
+    }
+    fprintf(archivo, "\n");  // Asegurar que terminamos con una nueva línea
+
+    // Cerrar el archivo
+    fclose(archivo);
 }
 
 
 EnteroLargo *leeEnteroLargo(char *nombreArchivo){
     EnteroLargo *unEnteroLargo = NULL;
-    //...
-    return(unEnteroLargo);
+    FILE *archivo = fopen(nombreArchivo, "r"); // Abrir el archivo en modo lectura
+    if (archivo == NULL) {
+        printf("Error al abrir el archivo %s para leer.\n", nombreArchivo);
+        return NULL;
+    }
+
+    unEnteroLargo = (EnteroLargo *)malloc(sizeof(EnteroLargo));
+    if (unEnteroLargo == NULL) {
+        fclose(archivo);
+        printf("Error al asignar memoria para el entero largo.\n");
+        return NULL;
+    }
+
+    unEnteroLargo->siguiente = NULL;
+    fscanf(archivo, "%c\n", &(unEnteroLargo->signo)); // Leer el signo
+    fscanf(archivo, "%d\n", &(unEnteroLargo->cantidadDigitos)); // Leer la cantidad de dígitos
+
+    for (int i = 0; i < unEnteroLargo->cantidadDigitos; i++) {
+        int digito;
+        fscanf(archivo, "%1d", &digito); // Lee un dígito
+        agregarElemento(&(unEnteroLargo->siguiente), digito);
+    }
+
+    fclose(archivo); // Cerrar el archivo
+    return unEnteroLargo;
 }
 
 
