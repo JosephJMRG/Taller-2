@@ -211,54 +211,96 @@ void escribeEnteroLargo(char *nombreArchivo, EnteroLargo *numero) {
 }
 
 
-EnteroLargo *asignarMemoriaEnteroLargo();
-int leerSigno(FILE *archivo, EnteroLargo *unEnteroLargo);
-int leerCantidadDigitos(FILE *archivo, EnteroLargo *unEnteroLargo);
-int construirListaDigitos(FILE *archivo, EnteroLargo *unEnteroLargo);
-
 EnteroLargo *leeEnteroLargo(char *nombreArchivo) {
     // Asignar memoria para EnteroLargo
-    EnteroLargo *unEnteroLargo = asignarMemoriaEnteroLargo();
-    if (unEnteroLargo == NULL) return NULL;
+    EnteroLargo *unEnteroLargo = (EnteroLargo *)malloc(sizeof(EnteroLargo));
+    if (unEnteroLargo == NULL) {
+        printf("No se pudo asignar memoria para EnteroLargo.\n");
+        return NULL;
+    }
+
+    // Inicializar la lista de dígitos a NULL
+    unEnteroLargo->siguiente = NULL;
 
     // Abrir el archivo en modo binario para lectura
     FILE *archivo = fopen(nombreArchivo, "rb");
     if (archivo == NULL) {
-        printf("Error al abrir el archivo %s para leer.\n", nombreArchivo);
+        printf("Error al abrir el archivo %s para leer.\n");
         free(unEnteroLargo);
         return NULL;
     }
 
     // Leer el signo del número
-    if (leerSigno(archivo, unEnteroLargo) == -1) {
+    if (fread(&(unEnteroLargo->signo), sizeof(char), 1, archivo) != 1) {
+        printf("Error al leer el signo del archivo.\n");
         free(unEnteroLargo);
         fclose(archivo);
         return NULL;
     }
+    printf("Leyendo signo: %c\n", unEnteroLargo->signo);
 
     // Leer la cantidad de dígitos
-    if (leerCantidadDigitos(archivo, unEnteroLargo) == -1) {
+    if (fread(&(unEnteroLargo->cantidadDigitos), sizeof(int), 1, archivo) != 1) {
+        printf("Error al leer la cantidad de dígitos del archivo.\n");
         free(unEnteroLargo);
         fclose(archivo);
         return NULL;
     }
+    printf("Cantidad de dígitos leída: %d\n", unEnteroLargo->cantidadDigitos);
 
-    // Ajustar la cantidad de dígitos para números negativos
+    // Ajuste de la cantidad de dígitos en caso de número negativo
     if (unEnteroLargo->signo == '-') {
-        unEnteroLargo->cantidadDigitos--; 
+        unEnteroLargo->cantidadDigitos--;
     }
+    printf("Cantidad de dígitos ajustada: %d\n", unEnteroLargo->cantidadDigitos);
 
-    // Construir la lista enlazada de dígitos
-    if (construirListaDigitos(archivo, unEnteroLargo) == -1) {
-        Nodo *temp = unEnteroLargo->siguiente;
-        while (temp != NULL) {
-            Nodo *siguiente = temp->siguiente;
-            free(temp);
-            temp = siguiente;
+    Nodo *anterior = NULL;
+    // Leer cada dígito y construir la lista enlazada
+    for (int i = 0; i < unEnteroLargo->cantidadDigitos; i++) {
+        Nodo *nuevoNodo = (Nodo *)malloc(sizeof(Nodo));
+        if (nuevoNodo == NULL) {
+            printf("No se pudo asignar memoria para Nodo.\n");
+            // Liberar la memoria previamente asignada
+            Nodo *temp = unEnteroLargo->siguiente;
+            while (temp != NULL) {
+                Nodo *siguiente = temp->siguiente;
+                free(temp);
+                temp = siguiente;
+            }
+            free(unEnteroLargo);
+            fclose(archivo);
+            return NULL;
         }
-        free(unEnteroLargo);
-        fclose(archivo);
-        return NULL;
+
+        // Leer el dígito del archivo
+        if (fread(&(nuevoNodo->digito), sizeof(int), 1, archivo) != 1) {
+            printf("Error al leer un dígito del archivo.\n");
+            free(nuevoNodo);
+            // Liberar la memoria previamente asignada
+            Nodo *temp = unEnteroLargo->siguiente;
+            while (temp != NULL) {
+                Nodo *siguiente = temp->siguiente;
+                free(temp);
+                temp = siguiente;
+            }
+            free(unEnteroLargo);
+            fclose(archivo);
+            return NULL;
+        }
+        printf("Dígito leído: %d\n", nuevoNodo->digito);
+
+        // Asegurarse de que el primer dígito se maneje correctamente si el número es negativo
+        if (i == 0 && unEnteroLargo->signo == '-') {
+            nuevoNodo->digito = -nuevoNodo->digito;
+        }
+
+        nuevoNodo->siguiente = NULL;
+        if (anterior == NULL) {
+            unEnteroLargo->siguiente = nuevoNodo;
+        } else {
+            anterior->siguiente = nuevoNodo;
+        }
+        anterior = nuevoNodo;
     }
 
     // Cerrar el archivo
